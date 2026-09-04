@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.agent.llm_adapter import get_llm_adapter
 from app.agent.tools import tool_search_knowledge_base
 from app.db import get_db
+from app.deps import AuthContext, get_current_auth
 from app.schemas import AssistantAskRequest, AssistantAskResponse, KbSourceOut
 
 logger = logging.getLogger(__name__)
@@ -23,10 +24,12 @@ _RELEVANCE_BUCKETS = [92, 78, 64, 50, 38]
 @router.post("/ask", response_model=AssistantAskResponse)
 def ask_assistant(
     payload: AssistantAskRequest,
+    auth: AuthContext = Depends(get_current_auth),
     db: Session = Depends(get_db),
 ) -> AssistantAskResponse:
     """Ad-hoc question answering — reuses the real retrieve + generate agent steps,
     independent of any ticket. Used by the AI Assistant page."""
+    _ = auth  # auth required for account scoping going forward
     question = payload.question.strip()
     hits = tool_search_knowledge_base(db, question)
 

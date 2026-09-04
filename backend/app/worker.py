@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import signal
 import sys
+import threading
 import time
 
 from sqlalchemy import text
@@ -50,8 +51,12 @@ def _ensure_schema() -> None:
 
 
 def main() -> None:
-    signal.signal(signal.SIGINT, _handle_signal)
-    signal.signal(signal.SIGTERM, _handle_signal)
+    if threading.current_thread() is threading.main_thread():
+        # Signal handlers can only be registered from the main thread. When run
+        # in-process on a background thread (see app.main._maybe_start_inprocess_worker),
+        # the host process's own signal handling covers shutdown instead.
+        signal.signal(signal.SIGINT, _handle_signal)
+        signal.signal(signal.SIGTERM, _handle_signal)
 
     settings = get_settings()
     redis = get_redis()

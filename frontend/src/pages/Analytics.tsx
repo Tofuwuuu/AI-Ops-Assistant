@@ -18,11 +18,6 @@ import {
 } from "recharts";
 import { api } from "../api/client";
 import { StatCard } from "../components/StatCard";
-import {
-  mockAiImpact,
-  mockSentimentTrend,
-  mockTopPerformers,
-} from "../data/mock";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#94a3b8",
@@ -35,6 +30,15 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS = ["#2563eb", "#0ea5e9", "#8b5cf6", "#f59e0b", "#64748b"];
+const DECISION_COLORS: Record<string, string> = {
+  answer_directly: "#10b981",
+  ask_clarifying: "#f59e0b",
+  escalate: "#f43f5e",
+};
+
+function dayKey(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 export function Analytics() {
   const ticketsQuery = useQuery({
@@ -43,7 +47,14 @@ export function Analytics() {
     refetchInterval: 10000,
   });
 
-  const { kpis, statusData, categoryData } = useMemo(() => {
+  const {
+    kpis,
+    statusData,
+    categoryData,
+    confidenceTrend,
+    decisionTrend,
+    topRequesters,
+  } = useMemo(() => {
     const all = ticketsQuery.data || [];
     const total = all.length;
     const approved = all.filter((t) => t.status === "approved").length;
@@ -76,6 +87,45 @@ export function Analytics() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
+    // Real confidence trend, grouped by day of ticket creation.
+    const byDayConf: Record<string, number[]> = {};
+    const byDayDecision: Record<string, Record<string, number>> = {};
+    for (const t of all) {
+      const key = dayKey(t.created_at);
+      if (t.confidence != null) {
+        byDayConf[key] = byDayConf[key] || [];
+        byDayConf[key].push(t.confidence);
+      }
+      const decision = t.reason_decision || "pending";
+      byDayDecision[key] = byDayDecision[key] || {};
+      byDayDecision[key][decision] = (byDayDecision[key][decision] || 0) + 1;
+    }
+    const orderedDays = Array.from(
+      new Set(all.map((t) => t.created_at).sort()).values()
+    ).map(dayKey);
+    const uniqueDays = Array.from(new Set(orderedDays));
+    const confidenceTrend = uniqueDays.map((d) => ({
+      day: d,
+      "Avg Confidence": byDayConf[d]
+        ? Math.round((byDayConf[d].reduce((a, b) => a + b, 0) / byDayConf[d].length) * 100)
+        : 0,
+    }));
+    const decisionTrend = uniqueDays.map((d) => ({
+      day: d,
+      "Answer Directly": byDayDecision[d]?.answer_directly || 0,
+      "Ask Clarifying": byDayDecision[d]?.ask_clarifying || 0,
+      Escalate: byDayDecision[d]?.escalate || 0,
+    }));
+
+    const requesterCounts: Record<string, number> = {};
+    for (const t of all) {
+      requesterCounts[t.requester_email] = (requesterCounts[t.requester_email] || 0) + 1;
+    }
+    const topRequesters = Object.entries(requesterCounts)
+      .map(([email, count]) => ({ email, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
     return {
       kpis: {
         total,
@@ -85,6 +135,9 @@ export function Analytics() {
       },
       statusData,
       categoryData,
+      confidenceTrend,
+      decisionTrend,
+      topRequesters,
     };
   }, [ticketsQuery.data]);
 
@@ -93,8 +146,8 @@ export function Analytics() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Analytics Insights</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Status and category charts use live ticket data. Sentiment, AI impact, and top
-          performers are demo placeholders.
+          Every chart below is computed live from real ticket, classification, and agent
+          decision data — no mock data.
         </p>
       </div>
 
@@ -169,71 +222,79 @@ export function Analytics() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card">
-          <h2 className="text-sm font-semibold text-slate-900">Customer Sentiment Trend</h2>
-          <p className="text-xs text-slate-400">Demo data — sentiment not tracked yet</p>
+          <h2 className="text-sm font-semibold text-slate-900">Confidence Trend</h2>
+          <p className="text-xs text-slate-400">Avg classify/generate confidence per day</p>
           <div className="mt-2 h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mockSentimentTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="week" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="Positive" stroke="#2563eb" strokeWidth={2} />
-                <Line type="monotone" dataKey="Neutral" stroke="#10b981" strokeWidth={2} />
-                <Line type="monotone" dataKey="Negative" stroke="#ef4444" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-2 flex gap-6 text-xs text-slate-500">
-            <span>
-              CSAT Score <strong className="text-slate-800">4.8/5.0</strong>
-            </span>
-            <span>
-              Response Rate <strong className="text-slate-800">98.2%</strong>
-            </span>
+            {confidenceTrend.length === 0 ? (
+              <p className="flex h-full items-center justify-center text-sm text-slate-400">
+                No data yet
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={confidenceTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="Avg Confidence"
+                    stroke="#2563eb"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card">
-          <h2 className="text-sm font-semibold text-slate-900">AI Impact</h2>
-          <p className="text-xs text-slate-400">Demo stacked usage by day</p>
+          <h2 className="text-sm font-semibold text-slate-900">Agent Decisions</h2>
+          <p className="text-xs text-slate-400">Reason-step outcomes per day</p>
           <div className="mt-2 h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockAiImpact}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="Draft" stackId="a" fill="#2563eb" />
-                <Bar dataKey="Macros" stackId="a" fill="#f59e0b" />
-                <Bar dataKey="Routing" stackId="a" fill="#10b981" />
-                <Bar dataKey="Knowledge" stackId="a" fill="#1e3a8a" />
-              </BarChart>
-            </ResponsiveContainer>
+            {decisionTrend.length === 0 ? (
+              <p className="flex h-full items-center justify-center text-sm text-slate-400">
+                No data yet
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={decisionTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="Answer Directly" stackId="a" fill={DECISION_COLORS.answer_directly} />
+                  <Bar dataKey="Ask Clarifying" stackId="a" fill={DECISION_COLORS.ask_clarifying} />
+                  <Bar dataKey="Escalate" stackId="a" fill={DECISION_COLORS.escalate} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card">
-          <h2 className="text-sm font-semibold text-slate-900">Top Performers</h2>
-          <p className="mb-4 text-xs text-slate-400">Demo roster — no agent auth yet</p>
-          <ul className="space-y-3">
-            {mockTopPerformers.map((p) => (
-              <li key={p.name} className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
-                  {p.initials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-900">{p.name}</p>
-                  <p className="text-xs text-slate-500">{p.role}</p>
-                </div>
-                <span className="text-sm font-bold text-slate-700">{p.tickets}</span>
-              </li>
-            ))}
-          </ul>
+          <h2 className="text-sm font-semibold text-slate-900">Top Requesters</h2>
+          <p className="mb-4 text-xs text-slate-400">By ticket volume, live data</p>
+          {topRequesters.length === 0 ? (
+            <p className="text-sm text-slate-400">No data yet</p>
+          ) : (
+            <ul className="space-y-3">
+              {topRequesters.map((r) => (
+                <li key={r.email} className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+                    {r.email.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">{r.email}</p>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">{r.count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -242,8 +303,9 @@ export function Analytics() {
             <div>
               <p className="text-sm font-semibold text-amber-900">AI Efficiency Tip</p>
               <p className="mt-1 text-sm text-amber-800">
-                Review macros for billing inquiries — the AI co-pilot reduced repetitive
-                handling by 42% in similar queues.
+                {kpis.total === 0
+                  ? "No tickets yet — submit one from the Dashboard to see live stats."
+                  : `${kpis.assistedPct}% of tickets received an AI draft, and ${kpis.approvedPct}% were approved as-is.`}
               </p>
             </div>
           </div>
@@ -252,8 +314,8 @@ export function Analytics() {
             <div>
               <p className="text-sm font-semibold text-violet-900">Automation Insight</p>
               <p className="mt-1 text-sm text-violet-800">
-                Auto-routing accuracy reached 94% when intent confidence exceeded 0.8 —
-                keep the human approval gate for lower-confidence drafts.
+                Average agent confidence is {kpis.avgConf}% — adjust thresholds on the Workflow
+                page to tune how often the agent asks clarifying questions vs. escalates.
               </p>
             </div>
           </div>

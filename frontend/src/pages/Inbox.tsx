@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   CheckCircle2,
   ChevronRight,
+  Crown,
   Paperclip,
   Send,
   Sparkles,
@@ -10,6 +12,7 @@ import {
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { StatusBadge } from "../components/StatusBadge";
+import { isNegativeSentiment, isSeniorTier, sentimentScore } from "../lib/signals";
 import type { TicketListItem } from "../types";
 
 function initialsFor(email: string): string {
@@ -58,6 +61,11 @@ export function Inbox() {
     refetchInterval: 4000,
   });
 
+  const settingsQuery = useQuery({
+    queryKey: ["settings"],
+    queryFn: () => api.getSettings(),
+  });
+
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.approveTicket(id),
     onSuccess: () => {
@@ -80,6 +88,15 @@ export function Inbox() {
   const retrieveLog = ticket?.logs.find((l) => l.step === "retrieve");
   const kbTitles = (retrieveLog?.output_json?.titles as string[] | undefined) || [];
   const nextSteps = ticket?.reason_decision ? DECISION_STEPS[ticket.reason_decision] || [] : [];
+
+  const sentimentThreshold = settingsQuery.data
+    ? Math.round(settingsQuery.data.sentiment_priority_threshold * 100)
+    : 50;
+  const tierThreshold = settingsQuery.data
+    ? Math.round(settingsQuery.data.tier_ticket_share_threshold * 100)
+    : 20;
+  const negativeSentiment = ticket ? isNegativeSentiment(ticket.body, sentimentThreshold) : false;
+  const seniorTier = ticket ? isSeniorTier(ticket.requester_email, tickets, tierThreshold) : false;
 
   return (
     <div className="grid h-[calc(100vh-7rem)] gap-4 lg:grid-cols-6">
@@ -243,6 +260,16 @@ export function Inbox() {
                     {t}
                   </span>
                 ))}
+                {negativeSentiment && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 ring-inset">
+                    <AlertTriangle className="h-3 w-3" /> Negative sentiment ({sentimentScore(ticket!.body)}%)
+                  </span>
+                )}
+                {seniorTier && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200 ring-inset">
+                    <Crown className="h-3 w-3" /> Senior tier (repeat requester)
+                  </span>
+                )}
               </div>
             </section>
 

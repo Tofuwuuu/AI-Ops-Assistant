@@ -2,6 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Filter, Plus, Sparkles } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import { api } from "../api/client";
 import { derivePriority, PriorityBadge } from "../components/PriorityBadge";
 import { StatCard } from "../components/StatCard";
@@ -102,6 +112,49 @@ export function Dashboard() {
     };
   }, [ticketsQuery.data]);
 
+  const widgets = useMemo(() => {
+    const all = ticketsQuery.data || [];
+    const total = all.length;
+
+    const valueByStatus = [
+      { name: "Approved", value: all.filter((t) => t.status === "approved").length, fill: "#10b981" },
+      { name: "Needs review", value: all.filter((t) => t.status === "needs_review").length, fill: "#f59e0b" },
+      { name: "Rejected", value: all.filter((t) => t.status === "rejected").length, fill: "#f43f5e" },
+      {
+        name: "In progress",
+        value: all.filter((t) => ["pending", "classified", "drafted"].includes(t.status)).length,
+        fill: "#60a5fa",
+      },
+    ];
+
+    const approved = all.filter((t) => t.status === "approved").length;
+    const resolutionPct = total ? Math.round((approved / total) * 100) : 0;
+    const donutData = [
+      { name: "Resolved", value: approved, fill: "#2563eb" },
+      { name: "Remaining", value: Math.max(total - approved, 0), fill: "#e2e8f0" },
+    ];
+
+    const catCounts: Record<string, number> = {};
+    for (const t of all) catCounts[t.category || "unclassified"] = (catCounts[t.category || "unclassified"] || 0) + 1;
+    const stageColors = ["#2563eb", "#06b6d4", "#8b5cf6", "#f59e0b", "#64748b"];
+    let remaining = total;
+    const funnel = Object.entries(catCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count], i) => {
+        const cumulativePct = total ? Math.round((remaining / total) * 100) : 0;
+        remaining -= count;
+        return { name, count, cumulativePct, fill: stageColors[i % stageColors.length] };
+      });
+
+    const stageDonut = Object.entries(catCounts).map(([name, value], i) => ({
+      name,
+      value,
+      fill: stageColors[i % stageColors.length],
+    }));
+
+    return { valueByStatus, donutData, resolutionPct, funnel, stageDonut, total };
+  }, [ticketsQuery.data]);
+
   const selected = detailQuery.data;
   const latestDraft = selected?.drafts?.length
     ? selected.drafts[selected.drafts.length - 1]
@@ -112,14 +165,174 @@ export function Dashboard() {
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
 
+  function escapeCsv(value: string): string {
+    if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+    return value;
+  }
+
+  function handleExport() {
+    const rows = tickets.map((t) => ({
+      id: t.id,
+      subject: t.subject,
+      requester_email: t.requester_email,
+      status: t.status,
+      category: t.category || "",
+      confidence: t.confidence != null ? Math.round(t.confidence * 100) : "",
+      reason_decision: t.reason_decision || "",
+      created_at: t.created_at,
+      updated_at: t.updated_at,
+    }));
+    const headers = Object.keys(rows[0] || {
+      id: "", subject: "", requester_email: "", status: "", category: "",
+      confidence: "", reason_decision: "", created_at: "", updated_at: "",
+    });
+    const csv = [
+      headers.join(","),
+      ...rows.map((row) =>
+        headers.map((h) => escapeCsv(String((row as Record<string, unknown>)[h] ?? ""))).join(",")
+      ),
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    a.href = url;
+    a.download = `tickets-export-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="relative space-y-6">
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-sm text-slate-500">Live overview of your support pipeline.</p>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="Open Tickets" value={stats.open} accent="blue" />
         <StatCard label="Needs Review" value={stats.review} accent="amber" />
         <StatCard label="AI Resolution Rate" value={`${stats.resolution}%`} accent="emerald" />
         <StatCard label="Avg Confidence" value={`${stats.avgConf}%`} hint="proxy for draft quality" />
         <StatCard label="Auto-Handled" value={stats.autoHandled} hint="drafted or approved" />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-900">Ticket Value</h2>
+            <button type="button" className="text-slate-300 hover:text-slate-500">⋮</button>
+          </div>
+          <div className="mt-3 h-40">
+            {widgets.total === 0 ? (
+              <p className="flex h-full items-center justify-center text-sm text-slate-400">No data yet</p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={widgets.valueByStatus} layout="vertical" margin={{ left: 8, right: 8 }}>
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={16}>
+                    {widgets.valueByStatus.map((entry) => (
+                      <Cell key={entry.name} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                  <Tooltip />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+            {widgets.valueByStatus.map((s) => (
+              <span key={s.name} className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.fill }} />
+                {s.name} · {s.value}
+              </span>
+            ))}
+          </div>
+          <p className="mt-3 border-t border-slate-100 pt-3 text-sm">
+            Total tickets <span className="font-bold text-slate-900">{widgets.total}</span>
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-900">Resolution Rate</h2>
+            <button type="button" className="text-slate-300 hover:text-slate-500">⋮</button>
+          </div>
+          <div className="relative mt-1 h-40">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={widgets.donutData} dataKey="value" innerRadius={48} outerRadius={68} paddingAngle={2}>
+                  {widgets.donutData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-bold text-slate-900">{widgets.resolutionPct}%</span>
+              <span className="text-[10px] text-slate-400">resolved</span>
+            </div>
+          </div>
+          <p className="mt-2 text-center text-xs text-slate-500">
+            {widgets.donutData[0].value} of {widgets.total} tickets approved as-is
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-900">Stage Distribution</h2>
+            <button type="button" className="text-slate-300 hover:text-slate-500">⋮</button>
+          </div>
+          <div className="mt-1 h-40">
+            {widgets.stageDonut.length === 0 ? (
+              <p className="flex h-full items-center justify-center text-sm text-slate-400">No data yet</p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={widgets.stageDonut} dataKey="value" nameKey="name" innerRadius={48} outerRadius={68} paddingAngle={2}>
+                    {widgets.stageDonut.map((entry) => (
+                      <Cell key={entry.name} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-slate-900">Funnel · By Category</h2>
+        <p className="text-xs text-slate-400">Ticket categories ranked by volume, with cumulative share</p>
+        {widgets.funnel.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-400">No data yet</p>
+        ) : (
+          <div className="mt-4 space-y-2">
+            <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              <span>Category</span>
+              <span className="w-16 text-right">Count</span>
+              <span className="w-20 text-right">Cumulative</span>
+            </div>
+            {widgets.funnel.map((f) => (
+              <div key={f.name} className="grid grid-cols-[1fr_auto_auto] items-center gap-4 rounded-lg px-1 py-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 flex-1 overflow-hidden rounded bg-slate-100">
+                    <div
+                      className="h-full rounded"
+                      style={{ width: `${f.cumulativePct}%`, backgroundColor: f.fill }}
+                    />
+                  </div>
+                  <span className="w-28 shrink-0 truncate text-xs font-medium text-slate-700">{f.name}</span>
+                </div>
+                <span className="w-16 text-right text-sm font-semibold text-slate-800">{f.count}</span>
+                <span className="w-20 text-right text-sm text-slate-500">{f.cumulativePct}%</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {showForm && (
@@ -162,7 +375,10 @@ export function Dashboard() {
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white"
+                onClick={handleExport}
+                disabled={tickets.length === 0}
+                title={tickets.length === 0 ? "No tickets to export" : "Export visible tickets as CSV"}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Download className="h-3.5 w-3.5" /> Export
               </button>

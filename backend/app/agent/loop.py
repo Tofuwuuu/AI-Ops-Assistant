@@ -41,7 +41,11 @@ def run_agent_loop(db: Session, ticket_id: str | UUID) -> Ticket:
         raise ValueError(f"Ticket {ticket_id} not found")
 
     llm = get_llm_adapter()
-    settings_row = db.query(AppSettings).filter(AppSettings.id == 1).first()
+    settings_row = None
+    if ticket.account_id:
+        settings_row = db.query(AppSettings).filter(AppSettings.account_id == ticket.account_id).first()
+    if not settings_row:
+        settings_row = db.query(AppSettings).order_by(AppSettings.id).first()
     ask_threshold = settings_row.ask_clarifying_threshold if settings_row else 0.45
     bug_escalate_threshold = settings_row.bug_escalate_threshold if settings_row else 0.7
 

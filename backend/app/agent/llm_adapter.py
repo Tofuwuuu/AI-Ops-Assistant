@@ -32,6 +32,29 @@ class OpenAIAdapter(LLMAdapter):
         return content.strip()
 
 
+class GroqAdapter(LLMAdapter):
+    """Groq's API is OpenAI-compatible — reuse the OpenAI SDK with a different base_url.
+    Free tier, no credit card required: https://console.groq.com
+    """
+
+    def __init__(self, api_key: str, model: str) -> None:
+        from openai import OpenAI
+
+        self.client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+        # Groq doesn't host OpenAI's gpt-* models — fall back to a solid free default
+        # (llama-3.3-70b-versatile) if the configured model looks like an OpenAI one.
+        self.model = model if not model.startswith("gpt-") else "llama-3.3-70b-versatile"
+
+    def generate(self, messages: list[dict[str, str]], temperature: float = 0.2) -> str:
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,  # type: ignore[arg-type]
+            temperature=temperature,
+        )
+        content = response.choices[0].message.content or ""
+        return content.strip()
+
+
 class AnthropicAdapter(LLMAdapter):
     def __init__(self, api_key: str, model: str) -> None:
         from anthropic import Anthropic
@@ -116,6 +139,12 @@ def get_llm_adapter() -> LLMAdapter:
             logger.warning("ANTHROPIC_API_KEY missing/placeholder — using MockAdapter")
             return MockAdapter()
         return AnthropicAdapter(settings.anthropic_api_key, settings.llm_model)
+
+    if provider == "groq":
+        if not settings.groq_api_key or settings.groq_api_key.startswith("gsk_your"):
+            logger.warning("GROQ_API_KEY missing/placeholder — using MockAdapter")
+            return MockAdapter()
+        return GroqAdapter(settings.groq_api_key, settings.llm_model)
 
     logger.warning("Unknown LLM_PROVIDER=%s — using MockAdapter", provider)
     return MockAdapter()
