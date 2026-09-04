@@ -1,8 +1,12 @@
-import { Bell, CalendarDays, ChevronDown, CircleHelp, LogOut, MessageCircle, Search } from "lucide-react";
+import { Bell, CalendarDays, ChevronDown, CircleHelp, LogOut, Menu, MessageCircle, Search } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useSearch } from "../layouts/AppLayout";
 
-export function Topbar() {
+interface TopbarProps {
+  onMenuClick: () => void;
+}
+
+export function Topbar({ onMenuClick }: TopbarProps) {
   const { search, setSearch } = useSearch();
   const { user, account, logout } = useAuth();
   const initials = (user?.display_name || user?.email || "U")
@@ -17,10 +21,19 @@ export function Topbar() {
   const fmt = (d: Date) => d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
 
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200/80 bg-white px-4 py-2.5 sm:px-6">
+    <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-slate-200/80 bg-white px-3 py-2.5 sm:gap-3 sm:px-6">
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        onClick={onMenuClick}
+        aria-label="Open menu"
+        className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100 md:hidden"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      <button
+        type="button"
+        className="hidden shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:inline-flex"
       >
         Dashboard
         <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
@@ -37,7 +50,7 @@ export function Topbar() {
         />
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5">
+      <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2.5">
         <span className="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 md:inline-flex">
           <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
           {fmt(monthAgo)} – {fmt(today)}
@@ -45,21 +58,21 @@ export function Topbar() {
 
         <button
           type="button"
-          className="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
+          className="hidden h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200 sm:grid"
           aria-label="Messages"
         >
           <MessageCircle className="h-4 w-4" />
         </button>
         <button
           type="button"
-          className="grid h-8 w-8 place-items-center rounded-full bg-amber-100 text-amber-600 hover:bg-amber-200"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-600 hover:bg-amber-200"
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />
         </button>
         <button
           type="button"
-          className="grid h-8 w-8 place-items-center rounded-full bg-sky-100 text-sky-600 hover:bg-sky-200"
+          className="hidden h-8 w-8 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-600 hover:bg-sky-200 sm:grid"
           aria-label="Help"
         >
           <CircleHelp className="h-4 w-4" />

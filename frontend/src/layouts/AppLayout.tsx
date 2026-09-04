@@ -19,15 +19,16 @@ export function useSearch() {
 
 export function AppLayout() {
   const [search, setSearch] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const value = useMemo(() => ({ search, setSearch }), [search]);
 
   return (
     <SearchContext.Provider value={value}>
       <div className="flex min-h-screen bg-surface">
-        <Sidebar />
-        <div className="flex min-h-screen flex-1 flex-col overflow-hidden">
-          <Topbar />
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-hidden">
+          <Topbar onMenuClick={() => setSidebarOpen(true)} />
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
             <Outlet />
           </main>
         </div>
