@@ -1,0 +1,155 @@
+{
+  "name": "AI Ops Assistant — notify + retry",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ops-assistant",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-ops",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "ops-assistant"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\nconst event = body.event || 'unknown';\nconst status = body.status || 'unknown';\nconst ticketId = body.ticket_id;\n\nreturn [{\n  json: {\n    ticket_id: ticketId,\n    event,\n    status,\n    audit: {\n      received_at: new Date().toISOString(),\n      source: 'ai-ops-assistant',\n      payload: body\n    },\n    should_retry: event === 'agent_error' || event === 'validation_failed' || status === 'failed'\n  }\n}];"
+      },
+      "id": "audit-transform",
+      "name": "Audit Transform",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.should_retry}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-retry",
+      "name": "Should Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/tickets/{{$json.ticket_id}}/retry",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "http-retry",
+      "name": "Retry Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [920, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/webhooks/n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "change-me-n8n-secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"ticket_id\": \"{{$json.ticket_id}}\",\n  \"action\": \"ack\",\n  \"detail\": \"n8n audited event {{$json.event}}\"\n}",
+        "options": {}
+      },
+      "id": "http-ack",
+      "name": "Ack Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [920, 400]
+    },
+    {
+      "parameters": {
+        "content": "## AI Ops Assistant workflow\n\n1. Receives agent handoff webhook\n2. Builds an audit payload\n3. Retries failed tickets via `POST /tickets/{id}/retry`\n4. ACKs successful reviews via `/webhooks/n8n`\n\n**Import:** In n8n UI → Workflows → Import from File → this JSON.\nActivate the workflow so the webhook path `/webhook/ops-assistant` is live.\n\nReplace the webhook secret header to match `N8N_WEBHOOK_SECRET`.",
+        "height": 420,
+        "width": 360
+      },
+      "id": "sticky-note",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [40, 80]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Audit Transform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Transform": {
+      "main": [
+        [
+          {
+            "node": "Should Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Retry?": {
+      "main": [
+        [
+          {
+            "node": "Retry Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ack Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    {
+      "name": "ai-ops-assistant"
+    }
+  ]
+}
