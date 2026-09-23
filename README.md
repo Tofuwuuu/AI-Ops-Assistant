@@ -16,7 +16,25 @@ The built bundle calls a separate FastAPI process at [https://backend-production
 
 Sign in with the credentials already filled on the login screen (seeded on first API boot): `admin@demo.example.com` / `demo1234`.
 
-Screenshots are not committed yet. Put UI captures in [`docs/screenshots/`](docs/screenshots/).
+## Screenshots
+
+Captured from the live Vercel UI on 23 Sep 2026 after demo sign-in. The ticket data comes from the Railway API. Docker Compose is still the setup that runs Postgres, Redis, the worker, and n8n together.
+
+![Archivist dashboard with pipeline stats and the active queue](docs/screenshots/dashboard.png)
+
+Dashboard — pipeline stats and the active ticket queue.
+
+![Conversations inbox with a billing ticket and the AI copilot draft](docs/screenshots/inbox.png)
+
+Conversations — ticket list beside the AI copilot draft.
+
+![Ticket detail with the agent pipeline and an unsent draft](docs/screenshots/ticket-detail.png)
+
+Ticket detail — agent pipeline timeline and the draft waiting for approval.
+
+![Analytics charts computed from stored tickets](docs/screenshots/analytics.png)
+
+Reporting — status, category, confidence, and decision charts from stored tickets.
 
 ## Architecture
 
