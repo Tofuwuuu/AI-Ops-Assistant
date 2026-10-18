@@ -19,3 +19,32 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Demo mode: a fixed banner sits above the app. Its height is reserved from
+   the first paint, so nothing shifts. */
+:root {
+  --banner-h: 0px;
+}
+
+.demo-mode {
+  --banner-h: 3rem;
+}
+
+@media (min-width: 640px) {
+  .demo-mode {
+    --banner-h: 2.25rem;
+  }
+}
+
+.demo-mode #root {
+  padding-top: var(--banner-h);
+}
+
+.demo-mode .min-h-screen {
+  min-height: calc(100vh - var(--banner-h));
+}
+
+[data-demo-locked] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

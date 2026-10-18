@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Lightbulb, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { api } from "../api/client";
+import { writeLock } from "../lib/demo";
 
 function relevanceColor(pct: number): string {
   if (pct >= 70) return "bg-emerald-500";
@@ -63,6 +64,7 @@ export function AiAssistant() {
               <button
                 key={ex}
                 type="button"
+                {...writeLock()}
                 onClick={() => handleAsk(ex)}
                 className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-brand-300 hover:text-brand-700"
               >
@@ -72,7 +74,7 @@ export function AiAssistant() {
           </div>
           <button
             type="button"
-            disabled={!question.trim() || askMutation.isPending}
+            {...writeLock(!question.trim() || askMutation.isPending)}
             onClick={() => handleAsk(question)}
             className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
           >

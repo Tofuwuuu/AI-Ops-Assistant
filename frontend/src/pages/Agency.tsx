@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { writeLock } from "../lib/demo";
 
 export function Agency() {
   const { account, accounts, switchAccount, refresh } = useAuth();
@@ -55,7 +56,7 @@ export function Agency() {
           onChange={(e) => setName(e.target.value)}
           className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
         />
-        <button type="submit" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
+        <button type="submit" {...writeLock()} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
           Create sub-account
         </button>
         {error && <p className="w-full text-sm text-rose-600">{error}</p>}
@@ -79,6 +80,7 @@ export function Agency() {
               {a.id !== account.id && (
                 <button
                   type="button"
+                  {...writeLock()}
                   onClick={() => switchAccount(a.id)}
                   className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold"
                 >

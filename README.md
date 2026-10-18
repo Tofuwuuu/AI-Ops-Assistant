@@ -12,7 +12,7 @@ Live UI, HTTP 200 on 19 Oct 2026: [https://ai-ops-assistant-wheat.vercel.app/](h
 
 That Vercel host serves the static React app. `frontend/vercel.json` rewrites every path to `index.html`, so `/health` and `/api` on that origin are the same HTML page. Postgres, Redis, the worker, and n8n are Compose services, and they are the primary full-stack demo.
 
-The live site is the frontend only. Its backend is offline, so sign-in on the live site won't work. To use the full app, run it locally (see Run the full app locally).
+The live site is the frontend only, running on built-in sample data with no sign-in. It opens straight to the dashboard, and actions that need the backend, like Approve and Send, are turned off. To use the full app, run it locally (see Run the full app locally). Locally, the app signs you in automatically as the demo user.
 
 ## Screenshots
 
@@ -42,7 +42,7 @@ You need Docker installed. Start the API, worker, Postgres, Redis, n8n, and the 
 docker compose up --build
 ```
 
-Then open http://localhost:5173 and sign in with `admin@demo.example.com` / `demo1234`. On first start it runs the database migrations and creates the demo account. No `.env` is needed: without API keys it uses mock AI, email, SMS, and Stripe, so nothing connects to a paid service or the live site.
+Then open http://localhost:5173. It signs you in to a demo account automatically. On first start it runs the database migrations and creates the demo account. No `.env` is needed: without API keys it uses mock AI, email, SMS, and Stripe, so nothing connects to a paid service or the live site.
 
 To add fake contacts and an open invoice:
 
@@ -55,6 +55,8 @@ Press Ctrl+C to stop it, or run this from another terminal:
 ```bash
 docker compose down
 ```
+
+If automatic sign-in doesn't work, the sign-in form appears instead. Use `admin@demo.example.com` / `demo1234`. The form also appears after you log out.
 
 ## Architecture
 
@@ -108,7 +110,7 @@ The Compose frontend is built with `VITE_API_BASE_URL=http://localhost:8000`, so
 
 ### 4. Try a ticket
 
-1. Open http://localhost:5173 and sign in (`admin@demo.example.com` / `demo1234` on a fresh database)
+1. Open http://localhost:5173. It signs you in to a demo account automatically.
 2. Submit a request (for example, “How do I reset my password?”)
 3. Open the ticket detail page and watch the agent timeline
 4. Review the AI draft and **Approve** or **Reject**
@@ -162,7 +164,7 @@ npm run dev                        # http://localhost:5173
 
 ## Known limitations (v1)
 
-- The live Vercel site is the frontend only, with no backend running.
+- The live Vercel site is the frontend only, with sample data and no backend running.
 - LLM mock mode when provider API keys are missing or still the `.env.example` placeholders
 - n8n notification channels are stubbed (ack / retry only)
 - Keyword retrieval only (no embeddings / pgvector yet)

@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
+import { writeLock } from "../lib/demo";
 
 export function PublicBooking() {
   const { accountSlug } = useParams<{ accountSlug: string }>();
@@ -86,7 +87,7 @@ export function PublicBooking() {
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <button
           type="submit"
-          disabled={!selected || bookMutation.isPending}
+          {...writeLock(!selected || bookMutation.isPending)}
           className="w-full rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
         >
           Confirm booking

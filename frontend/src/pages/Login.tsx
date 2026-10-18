@@ -1,10 +1,7 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { checkApiHealth } from "../api/client";
 import { useAuth } from "../context/AuthContext";
-
-const README_LOCAL_URL =
-  "https://github.com/Tofuwuuu/AI-Ops-Assistant#run-the-full-app-locally";
+import { DEMO_MODE } from "../lib/demo";
 
 export function Login() {
   const { login, user, loading } = useAuth();
@@ -12,24 +9,13 @@ export function Login() {
   const [password, setPassword] = useState("demo1234");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  // Only true after the health check fails. While it runs, the page looks normal.
-  const [apiOffline, setApiOffline] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    checkApiHealth(3000).then((ok) => {
-      if (active && !ok) setApiOffline(true);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (!loading && user) return <Navigate to="/" replace />;
+  // The demo build has no sign-in. Locally this form is the fallback when
+  // automatic sign-in is unavailable or after you log out.
+  if (DEMO_MODE || (!loading && user)) return <Navigate to="/" replace />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (apiOffline) return;
     setPending(true);
     setError(null);
     try {
@@ -43,23 +29,6 @@ export function Login() {
 
   return (
     <div className="flex min-h-screen flex-col bg-surface">
-      {apiOffline && (
-        <div
-          role="status"
-          className="border-b border-slate-200 bg-surface-muted px-4 py-2 text-center text-sm text-slate-600"
-        >
-          This demo shows the frontend only. The backend is offline, so sign-in is turned off.{" "}
-          <a
-            href={README_LOCAL_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
-          >
-            Run it locally
-          </a>{" "}
-          to try the full app.
-        </div>
-      )}
       <div className="flex flex-1 items-center justify-center p-4">
         <form
           onSubmit={onSubmit}
@@ -92,7 +61,7 @@ export function Login() {
           {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
           <button
             type="submit"
-            disabled={pending || apiOffline}
+            disabled={pending}
             className="mt-6 w-full rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-brand-600"
           >
             {pending ? "Signing in…" : "Sign in"}

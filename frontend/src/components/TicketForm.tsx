@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { writeLock } from "../lib/demo";
 
 interface Props {
   onSubmit: (data: { subject: string; body: string; requester_email: string }) => Promise<void>;
@@ -83,7 +84,7 @@ export function TicketForm({ onSubmit, busy }: Props) {
       <div className="mt-5 flex justify-end">
         <button
           type="submit"
-          disabled={busy}
+          {...writeLock(busy)}
           className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy ? "Submitting…" : "Submit ticket"}

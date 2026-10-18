@@ -20,6 +20,7 @@ import { TicketForm } from "../components/TicketForm";
 import { TicketTable } from "../components/TicketTable";
 import { useSearch } from "../layouts/AppLayout";
 import type { TicketStatus } from "../types";
+import { writeLock } from "../lib/demo";
 
 const FILTERS: { label: string; value: TicketStatus | "" }[] = [
   { label: "All", value: "" },
@@ -493,7 +494,7 @@ export function Dashboard() {
                       <>
                         <button
                           type="button"
-                          disabled={approveMutation.isPending}
+                          {...writeLock(approveMutation.isPending)}
                           onClick={() => approveMutation.mutate(selected.id)}
                           className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
                         >
@@ -501,7 +502,7 @@ export function Dashboard() {
                         </button>
                         <button
                           type="button"
-                          disabled={rejectMutation.isPending}
+                          {...writeLock(rejectMutation.isPending)}
                           onClick={() => rejectMutation.mutate(selected.id)}
                           className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50"
                         >
@@ -525,6 +526,7 @@ export function Dashboard() {
 
       <button
         type="button"
+        {...writeLock()}
         onClick={focusForm}
         className="fixed bottom-6 right-6 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-soft hover:bg-brand-700"
         aria-label="New ticket"

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useMemo, useState } from "react";
 import { api } from "../api/client";
 import type { Deal } from "../types";
+import { writeLock } from "../lib/demo";
 
 export function PipelinePage() {
   const queryClient = useQueryClient();
@@ -92,7 +93,7 @@ export function PipelinePage() {
             </option>
           ))}
         </select>
-        <button type="submit" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
+        <button type="submit" {...writeLock()} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
           Add deal
         </button>
       </form>
@@ -115,6 +116,7 @@ export function PipelinePage() {
                         <button
                           key={s}
                           type="button"
+                          {...writeLock()}
                           onClick={() => moveMutation.mutate({ id: deal.id, stage: s })}
                           className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200 hover:text-brand-700"
                         >

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
 import { api } from "../api/client";
+import { writeLock } from "../lib/demo";
 
 export function Campaigns() {
   const queryClient = useQueryClient();
@@ -94,7 +95,7 @@ export function Campaigns() {
             </label>
           ))}
         </div>
-        <button type="submit" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
+        <button type="submit" {...writeLock()} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
           Create campaign
         </button>
         {createMutation.isError && (
@@ -116,6 +117,7 @@ export function Campaigns() {
             {c.status === "draft" && (
               <button
                 type="button"
+                {...writeLock()}
                 onClick={() => sendMutation.mutate(c.id)}
                 className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"
               >

@@ -168,6 +168,9 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+if settings.app_env.strip().lower() == "development":
+    # POST /auth/demo signs in the seeded demo user. Local development only.
+    app.include_router(auth.demo_router)
 app.include_router(tickets.router)
 app.include_router(webhooks.router)
 app.include_router(settings_router.router)

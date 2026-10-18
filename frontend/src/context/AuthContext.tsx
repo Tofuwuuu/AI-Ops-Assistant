@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, clearStoredAuth, getStoredToken, setStoredAuth } from "../api/client";
+import { SAMPLE_ME } from "../api/sampleData";
+import { DEMO_MODE } from "../lib/demo";
 import type { Account, AuthSession, AuthUser } from "../types";
 
 interface AuthContextValue {
@@ -22,12 +24,27 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Set on logout so a local session doesn't sign straight back in.
+const SKIP_AUTO_SIGN_IN_KEY = "aiops_skip_auto_sign_in";
+
+// One attempt per page load, even when StrictMode runs effects twice.
+let autoSignIn: Promise<void> | null = null;
+function autoSignInOnce(): Promise<void> {
+  autoSignIn ??= api
+    .demoSignIn()
+    .then(setStoredAuth)
+    .catch(() => undefined);
+  return autoSignIn;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [account, setAccount] = useState<Account | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
+  // The demo build starts signed in as the sample user, so the first paint is
+  // the dashboard. It never calls the API.
+  const [user, setUser] = useState<AuthUser | null>(DEMO_MODE ? SAMPLE_ME.user : null);
+  const [account, setAccount] = useState<Account | null>(DEMO_MODE ? SAMPLE_ME.account : null);
+  const [role, setRole] = useState<string | null>(DEMO_MODE ? SAMPLE_ME.role : null);
+  const [accounts, setAccounts] = useState<Account[]>(DEMO_MODE ? SAMPLE_ME.accounts : []);
+  const [loading, setLoading] = useState(!DEMO_MODE);
 
   const applySession = useCallback((session: AuthSession) => {
     setStoredAuth(session);
@@ -37,6 +54,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refresh = useCallback(async () => {
+    if (DEMO_MODE) return;
+    if (!getStoredToken() && !sessionStorage.getItem(SKIP_AUTO_SIGN_IN_KEY)) {
+      // Local development: sign in as the seeded demo user. The backend only
+      // has /auth/demo when APP_ENV=development; if it fails, show the form.
+      await autoSignInOnce();
+    }
     if (!getStoredToken()) {
       setLoading(false);
       return;
@@ -65,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       const session = await api.login({ email, password });
+      sessionStorage.removeItem(SKIP_AUTO_SIGN_IN_KEY);
       applySession(session);
       await refresh();
     },
@@ -86,6 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    if (DEMO_MODE) return;
+    sessionStorage.setItem(SKIP_AUTO_SIGN_IN_KEY, "1");
     clearStoredAuth();
     setUser(null);
     setAccount(null);

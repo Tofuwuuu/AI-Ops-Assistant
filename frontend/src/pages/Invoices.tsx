@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
+import { writeLock } from "../lib/demo";
 
 export function Invoices() {
   const queryClient = useQueryClient();
@@ -87,7 +88,7 @@ export function Invoices() {
             </option>
           ))}
         </select>
-        <button type="submit" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
+        <button type="submit" {...writeLock()} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
           Create + checkout
         </button>
       </form>
@@ -104,6 +105,7 @@ export function Invoices() {
             {inv.status !== "paid" && (
               <button
                 type="button"
+                {...writeLock()}
                 onClick={() => payMutation.mutate(inv.id)}
                 className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"
               >

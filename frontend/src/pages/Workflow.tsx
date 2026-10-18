@@ -16,6 +16,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import type { AppSettingsUpdate, TicketListItem } from "../types";
+import { writeLock } from "../lib/demo";
 
 type NodeTone = "emerald" | "sky" | "indigo" | "amber" | "brand" | "rose" | "teal" | "pink";
 
@@ -398,6 +399,7 @@ export function Workflow() {
                       <div className="mt-2 flex items-center justify-center gap-3 border-t border-white/60 pt-2">
                         <button
                           type="button"
+                          {...writeLock()}
                           onClick={() => adjust(rule.key, -5)}
                           className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm hover:bg-slate-50"
                           aria-label="Decrease"
@@ -407,6 +409,7 @@ export function Workflow() {
                         <span className="w-10 text-center text-sm font-bold text-slate-800">{pct}%</span>
                         <button
                           type="button"
+                          {...writeLock()}
                           onClick={() => adjust(rule.key, 5)}
                           className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm hover:bg-slate-50"
                           aria-label="Increase"

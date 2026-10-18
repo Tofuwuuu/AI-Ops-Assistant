@@ -1,6 +1,7 @@
 import { Bell, CalendarDays, ChevronDown, CircleHelp, LogOut, Menu, MessageCircle, Search } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useSearch } from "../layouts/AppLayout";
+import { writeLock } from "../lib/demo";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -21,7 +22,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const fmt = (d: Date) => d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
 
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-slate-200/80 bg-white px-3 py-2.5 sm:gap-3 sm:px-6">
+    <header className="sticky top-[var(--banner-h)] z-20 flex items-center gap-2 border-b border-slate-200/80 bg-white px-3 py-2.5 sm:gap-3 sm:px-6">
       <button
         type="button"
         onClick={onMenuClick}
@@ -79,6 +80,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         </button>
         <button
           type="button"
+          {...writeLock()}
           onClick={logout}
           className="grid h-8 w-8 place-items-center rounded-full text-slate-500 hover:bg-slate-100"
           aria-label="Log out"

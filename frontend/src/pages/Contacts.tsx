@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
+import { writeLock } from "../lib/demo";
 
 export function Contacts() {
   const [q, setQ] = useState("");
@@ -64,6 +65,7 @@ export function Contacts() {
         />
         <button
           type="submit"
+          {...writeLock()}
           className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white"
         >
           Add contact
