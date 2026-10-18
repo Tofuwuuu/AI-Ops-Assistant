@@ -48,7 +48,7 @@ export function Campaigns() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Campaigns</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Email via SendGrid / SMS via Twilio — mock adapters used when keys are missing.
+          Send email or text messages to your contacts. Without real API keys, nothing actually goes out.
         </p>
       </div>
 
@@ -87,11 +87,11 @@ export function Campaigns() {
           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
         />
         <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-100 p-2">
-          <p className="mb-2 text-xs font-semibold text-slate-500">Audience (empty = all contacts)</p>
+          <p className="mb-2 text-xs font-semibold text-slate-500">Audience (leave all unchecked to send to everyone)</p>
           {(contactsQuery.data || []).map((c) => (
             <label key={c.id} className="flex items-center gap-2 px-2 py-1 text-sm">
               <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggle(c.id)} />
-              {c.name} · {c.email || c.phone || "—"}
+              {c.name} · {c.email || c.phone || "No email or phone"}
             </label>
           ))}
         </div>

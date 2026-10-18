@@ -62,7 +62,7 @@ export function PipelinePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">{pipeline.name}</h1>
-        <p className="mt-1 text-sm text-slate-500">Drag-free Kanban — click a stage chip to move deals.</p>
+        <p className="mt-1 text-sm text-slate-500">Click a stage to move a deal there.</p>
       </div>
 
       <form onSubmit={onCreate} className="flex flex-wrap gap-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
