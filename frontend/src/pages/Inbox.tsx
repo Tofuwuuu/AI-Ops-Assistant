@@ -210,11 +210,11 @@ export function Inbox() {
                   </button>
                   <button
                     type="button"
-                    {...writeLock(ticket.status !== "needs_review" || approveMutation.isPending)}
                     onClick={() => approveMutation.mutate(ticket.id)}
                     className="rounded-xl bg-brand-600 p-2 text-white hover:bg-brand-700 disabled:opacity-40"
                     aria-label="Send"
                     title="Approve draft (send)"
+                    {...writeLock(ticket.status !== "needs_review" || approveMutation.isPending)}
                   >
                     <Send className="h-4 w-4" />
                   </button>
