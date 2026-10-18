@@ -1,13 +1,19 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Public placeholder from this repo. Never valid outside development.
+DEFAULT_JWT_SECRET = "change-me-jwt-secret-dev-only"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "AI Ops Assistant"
-    app_env: str = "development"
+    # Unset means production, so a fresh deploy must set a real JWT_SECRET_KEY.
+    # Docker Compose and .env.example set APP_ENV=development.
+    app_env: str = "production"
     log_level: str = "INFO"
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
@@ -29,7 +35,7 @@ class Settings(BaseSettings):
     kb_docs_path: str = "../knowledge_base"
 
     # Auth
-    jwt_secret_key: str = "change-me-jwt-secret-dev-only"
+    jwt_secret_key: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7
 
@@ -45,6 +51,19 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = ""
     stripe_publishable_key: str = ""
     frontend_public_url: str = "http://localhost:5173"
+
+    @model_validator(mode="after")
+    def _require_real_jwt_secret(self) -> "Settings":
+        """Refuse to start outside development with a missing or public JWT secret."""
+        if self.app_env.strip().lower() != "development":
+            secret = (self.jwt_secret_key or "").strip()
+            if not secret or secret == DEFAULT_JWT_SECRET:
+                raise ValueError(
+                    "JWT_SECRET_KEY is unset or still the public default. "
+                    f"Set a real secret (openssl rand -hex 32) or APP_ENV=development. "
+                    f"APP_ENV is {self.app_env!r}."
+                )
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

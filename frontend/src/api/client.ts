@@ -39,6 +39,20 @@ export function clearStoredAuth() {
   localStorage.removeItem(ACCOUNT_KEY);
 }
 
+/** One quick GET /health. Resolves false on a timeout, network error, or non-2xx. */
+export async function checkApiHealth(timeoutMs = 3000): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${API_BASE}/health`, { signal: controller.signal });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
