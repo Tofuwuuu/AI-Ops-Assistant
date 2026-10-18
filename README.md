@@ -12,9 +12,7 @@ Live UI, HTTP 200 on 19 Oct 2026: [https://ai-ops-assistant-wheat.vercel.app/](h
 
 That Vercel host serves the static React app. `frontend/vercel.json` rewrites every path to `index.html`, so `/health` and `/api` on that origin are the same HTML page. Postgres, Redis, the worker, and n8n are Compose services, and they are the primary full-stack demo.
 
-The built bundle calls a separate FastAPI process at [https://backend-production-cd8c.up.railway.app](https://backend-production-cd8c.up.railway.app). Checked the same day: `GET /health` returned `{"status":"ok","app":"AI Ops Assistant"}`, `/docs` served Swagger, and CORS allowed the Vercel origin. Demo sign-in returned the seeded account (`branding_json.name` is `Archivist`). Those checks show a live API with stored data. They do not show Redis, a worker process, or n8n on that host. Compose runs those as their own services. A single-service API can optionally start the worker in-process when `RUN_WORKER_INPROCESS=true`; Compose leaves that unset.
-
-Sign in with the credentials already filled on the login screen (seeded on first API boot): `admin@demo.example.com` / `demo1234`.
+The live site is the frontend only. Its backend is offline, so sign-in on the live site won't work. To use the full app, run it locally (see Run the full app locally).
 
 ## Screenshots
 
@@ -148,6 +146,7 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 export DATABASE_URL=postgresql+psycopg://ops:ops@localhost:5432/ai_ops
 export REDIS_URL=redis://localhost:6379/0
+export APP_ENV=development           # outside development, the API needs a real JWT_SECRET_KEY
 # Windows cmd: set DATABASE_URL=...  and  set REDIS_URL=...
 uvicorn app.main:app --reload      # http://localhost:8000
 # Separate terminal, same venv and env:
@@ -163,7 +162,7 @@ npm run dev                        # http://localhost:5173
 
 ## Known limitations (v1)
 
-- The public Vercel URL is the static Archivist UI plus whatever the Railway API process is doing. Docker Compose is the setup that runs Postgres, Redis, a dedicated worker, n8n, and the frontend together
+- The live Vercel site is the frontend only, with no backend running.
 - LLM mock mode when provider API keys are missing or still the `.env.example` placeholders
 - n8n notification channels are stubbed (ack / retry only)
 - Keyword retrieval only (no embeddings / pgvector yet)
