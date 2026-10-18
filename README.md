@@ -36,6 +36,28 @@ Ticket detail — agent pipeline timeline and the draft waiting for approval.
 
 Reporting — status, category, confidence, and decision charts from stored tickets.
 
+## Run the full app locally
+
+You need Docker installed. Start the API, worker, Postgres, Redis, n8n, and the frontend:
+
+```bash
+docker compose up --build
+```
+
+Then open http://localhost:5173 and sign in with `admin@demo.example.com` / `demo1234`. On first start it runs the database migrations and creates the demo account. No `.env` is needed: without API keys it uses mock AI, email, SMS, and Stripe, so nothing connects to a paid service or the live site.
+
+To add fake contacts and an open invoice:
+
+```bash
+docker compose exec backend python -m app.seed_demo
+```
+
+Press Ctrl+C to stop it, or run this from another terminal:
+
+```bash
+docker compose down
+```
+
 ## Architecture
 
 ```
