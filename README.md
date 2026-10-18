@@ -1,6 +1,6 @@
 # AI Ops Assistant
 
-A junior full-stack and AI portfolio demo of ops and support tooling: the React dashboard takes a request, FastAPI queues an agent, and the draft stays unsent until a person approves it.
+A portfolio demo of support tooling: the React dashboard takes a request, FastAPI queues an agent, and the draft stays unsent until a person approves it.
 
 The repository and API title stay **AI Ops Assistant**. The UI product name is **Archivist** — the document title is `Archivist — Operational Intelligence`, and the seeded account branding uses that name.
 
@@ -8,7 +8,7 @@ Placeholder or missing `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GROQ_API_KEY` 
 
 ## Status and demo
 
-Live UI, HTTP 200 on 23 Sep 2026: [https://ai-ops-assistant-wheat.vercel.app/](https://ai-ops-assistant-wheat.vercel.app/)
+Live UI, HTTP 200 on 19 Oct 2026: [https://ai-ops-assistant-wheat.vercel.app/](https://ai-ops-assistant-wheat.vercel.app/)
 
 That Vercel host serves the static React app. `frontend/vercel.json` rewrites every path to `index.html`, so `/health` and `/api` on that origin are the same HTML page. Postgres, Redis, the worker, and n8n are Compose services, and they are the primary full-stack demo.
 
@@ -22,19 +22,19 @@ Captured from the live Vercel UI on 23 Sep 2026 after demo sign-in. The ticket d
 
 ![Archivist dashboard with pipeline stats and the active queue](docs/screenshots/dashboard.png)
 
-Dashboard — pipeline stats and the active ticket queue.
+Dashboard: pipeline stats and the active ticket queue.
 
 ![Conversations inbox with a billing ticket and the AI copilot draft](docs/screenshots/inbox.png)
 
-Conversations — ticket list beside the AI copilot draft.
+Conversations: ticket list beside the AI copilot draft.
 
 ![Ticket detail with the agent pipeline and an unsent draft](docs/screenshots/ticket-detail.png)
 
-Ticket detail — agent pipeline timeline and the draft waiting for approval.
+Ticket detail: agent pipeline timeline and the draft waiting for approval.
 
 ![Analytics charts computed from stored tickets](docs/screenshots/analytics.png)
 
-Reporting — status, category, confidence, and decision charts from stored tickets.
+Reporting: status, category, confidence, and decision charts from stored tickets.
 
 ## Run the full app locally
 
@@ -74,7 +74,7 @@ User (React) → FastAPI → Postgres / Redis queue
 ### 1. Environment
 
 ```bash
-cp .env.example .env
+cp .env.example .env   # (optional, only to use real API keys)
 # Optional: set OPENAI_API_KEY, or ANTHROPIC_API_KEY with LLM_PROVIDER=anthropic,
 # or GROQ_API_KEY with LLM_PROVIDER=groq.
 # Placeholder keys keep MockAdapter on the same pipeline.
@@ -130,7 +130,7 @@ Knowledge base docs live in `knowledge_base/*.md` and are seeded into Postgres (
 - API keys stay in environment variables (see `.env.example`; `.env` is gitignored)
 - Every agent step is written to `agent_logs` with secret redaction
 - Draft validation scans for secrets, empty or too-short text, and a small toxic-term list
-- **No automatic outbound send** — `approved` is set only by a signed-in user calling the dashboard approve action while the ticket is `needs_review`
+- **No automatic outbound send**: `approved` is set only by a signed-in user calling the dashboard approve action while the ticket is `needs_review`
 - Redis rate limiting on ticket creation
 - Dashboard routes require a JWT. The demo user above is created on first boot
 
