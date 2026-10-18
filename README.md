@@ -2,7 +2,7 @@
 
 A portfolio demo of support tooling: the React dashboard takes a request, FastAPI queues an agent, and the draft stays unsent until a person approves it.
 
-The repository and API title stay **AI Ops Assistant**. The UI product name is **Archivist** — the document title is `Archivist — Operational Intelligence`, and the seeded account branding uses that name.
+The repository and API title stay **AI Ops Assistant**. In the app, the product is called **Archivist**. The page title is `Archivist — Operational Intelligence`, and the demo account uses that name too.
 
 Placeholder or missing `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GROQ_API_KEY` values select `MockAdapter`. The pipeline still runs offline with canned classify and draft JSON. `GET /health` does not report which adapter a host is using.
 
@@ -16,7 +16,7 @@ The live site is the frontend only, running on built-in sample data with no sign
 
 ## Screenshots
 
-Captured from the live Vercel UI on 23 Sep 2026 after demo sign-in. The ticket data comes from the Railway API. Docker Compose is still the setup that runs Postgres, Redis, the worker, and n8n together.
+Captured on 23 Sep 2026, when the live site still had a backend. The live site now shows sample data instead. Docker Compose is still the setup that runs Postgres, Redis, the worker, and n8n together.
 
 ![Archivist dashboard with pipeline stats and the active queue](docs/screenshots/dashboard.png)
 
@@ -172,4 +172,4 @@ npm run dev                        # http://localhost:5173
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
