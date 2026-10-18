@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { DemoBanner } from "./components/DemoBanner";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { AppLayout } from "./layouts/AppLayout";
@@ -36,6 +37,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <DemoBanner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/login" element={<Login />} />

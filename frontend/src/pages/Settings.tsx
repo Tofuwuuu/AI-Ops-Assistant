@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { writeLock } from "../lib/demo";
 
 export function Settings() {
   const { user, account, role, refresh } = useAuth();
@@ -141,6 +142,7 @@ export function Settings() {
         </div>
         <button
           type="button"
+          {...writeLock()}
           onClick={() => brandMutation.mutate()}
           className="mt-4 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white"
         >
@@ -178,7 +180,7 @@ export function Settings() {
         <button
           type="button"
           onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isPending}
+          {...writeLock(saveMutation.isPending)}
           className="mt-4 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
         >
           {saveMutation.isPending ? "Saving…" : saved ? "Saved ✓" : "Save preferences"}

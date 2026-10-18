@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
+import { writeLock } from "../lib/demo";
 
 export function PublicFunnel() {
   const { accountSlug, pageSlug } = useParams<{ accountSlug: string; pageSlug: string }>();
@@ -89,7 +90,7 @@ export function PublicFunnel() {
               />
               <button
                 type="submit"
-                disabled={submitMutation.isPending}
+                {...writeLock(submitMutation.isPending)}
                 className="w-full rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white"
               >
                 Submit

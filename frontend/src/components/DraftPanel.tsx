@@ -1,4 +1,5 @@
 import type { Draft } from "../types";
+import { writeLock } from "../lib/demo";
 
 interface Props {
   draft: Draft | null;
@@ -48,7 +49,7 @@ export function DraftPanel({ draft, canReview, onApprove, onReject, busy }: Prop
         <div className="mt-5 flex flex-wrap gap-3">
           <button
             type="button"
-            disabled={busy}
+            {...writeLock(busy)}
             onClick={onApprove}
             className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
           >
@@ -56,7 +57,7 @@ export function DraftPanel({ draft, canReview, onApprove, onReject, busy }: Prop
           </button>
           <button
             type="button"
-            disabled={busy}
+            {...writeLock(busy)}
             onClick={onReject}
             className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
           >

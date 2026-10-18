@@ -1,6 +1,7 @@
 import { Bell, CalendarDays, ChevronDown, CircleHelp, LogOut, Menu, MessageCircle, Search } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useSearch } from "../layouts/AppLayout";
+import { writeLock } from "../lib/demo";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -83,6 +84,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           className="grid h-8 w-8 place-items-center rounded-full text-slate-500 hover:bg-slate-100"
           aria-label="Log out"
           title="Log out"
+          {...writeLock()}
         >
           <LogOut className="h-4 w-4" />
         </button>

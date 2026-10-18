@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import type { FunnelPage } from "../types";
+import { writeLock } from "../lib/demo";
 
 const DEFAULT_BLOCKS = [
   { type: "hero", title: "Get started today", subtitle: "Book a demo or leave your details." },
@@ -75,7 +76,7 @@ export function Funnels() {
           className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
           placeholder="slug"
         />
-        <button type="submit" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
+        <button type="submit" {...writeLock()} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
           Create funnel
         </button>
       </form>
@@ -125,6 +126,7 @@ export function Funnels() {
           <div className="mt-3 flex gap-2">
             <button
               type="button"
+              {...writeLock()}
               onClick={() => updateMutation.mutate()}
               className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white"
             >

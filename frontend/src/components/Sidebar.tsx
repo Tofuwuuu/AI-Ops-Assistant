@@ -132,7 +132,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
       {/* Static sidebar on desktop */}
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-[#15171f] px-3 py-4 text-white md:flex">
+      <aside className="sticky top-[var(--banner-h)] hidden h-[calc(100vh-var(--banner-h))] w-60 shrink-0 flex-col bg-[#15171f] px-3 py-4 text-white md:flex">
         {content}
       </aside>
 

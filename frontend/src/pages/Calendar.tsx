@@ -3,6 +3,7 @@ import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { writeLock } from "../lib/demo";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -100,7 +101,7 @@ export function CalendarPage() {
             className="mt-1 block w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm"
           />
         </label>
-        <button type="submit" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
+        <button type="submit" {...writeLock()} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">
           Add rule
         </button>
       </form>
@@ -117,6 +118,7 @@ export function CalendarPage() {
                 </span>
                 <button
                   type="button"
+                  {...writeLock()}
                   className="text-xs font-semibold text-rose-600"
                   onClick={() => api.deleteSlotRule(r.id).then(() => queryClient.invalidateQueries({ queryKey: ["slot-rules"] }))}
                 >
@@ -147,6 +149,7 @@ export function CalendarPage() {
                   {a.status === "booked" && (
                     <button
                       type="button"
+                      {...writeLock()}
                       onClick={() => cancelMutation.mutate(a.id)}
                       className="text-xs font-semibold text-rose-600"
                     >

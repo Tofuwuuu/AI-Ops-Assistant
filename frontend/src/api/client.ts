@@ -20,6 +20,8 @@ import type {
   TicketListItem,
   TicketStatus,
 } from "../types";
+import { DEMO_MODE } from "../lib/demo";
+import { demoApi } from "./demoApi";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const TOKEN_KEY = "aiops_token";
@@ -37,20 +39,6 @@ export function setStoredAuth(session: AuthSession) {
 export function clearStoredAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(ACCOUNT_KEY);
-}
-
-/** One quick GET /health. Resolves false on a timeout, network error, or non-2xx. */
-export async function checkApiHealth(timeoutMs = 3000): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(`${API_BASE}/health`, { signal: controller.signal });
-    return res.ok;
-  } catch {
-    return false;
-  } finally {
-    window.clearTimeout(timer);
-  }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -84,7 +72,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export const api = {
+const liveApi = {
   signup: (payload: {
     email: string;
     password: string;
@@ -94,6 +82,8 @@ export const api = {
     request<AuthSession>("/auth/signup", { method: "POST", body: JSON.stringify(payload) }),
   login: (payload: { email: string; password: string }) =>
     request<AuthSession>("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
+  /** Local development only: the backend registers /auth/demo when APP_ENV=development. */
+  demoSignIn: () => request<AuthSession>("/auth/demo", { method: "POST" }),
   me: () =>
     request<{ user: AuthSession["user"]; account: Account; role: string; accounts: Account[] }>(
       "/auth/me"
@@ -228,3 +218,12 @@ export const api = {
 
   agencyStats: () => request<AgencyStats[]>("/agency/stats"),
 };
+
+export type Api = typeof liveApi;
+
+/**
+ * The public demo build (VITE_DEMO_MODE=true) reads fixed sample data and never
+ * calls the network. Every other build uses the real API, and its errors surface
+ * as errors.
+ */
+export const api: Api = DEMO_MODE ? demoApi : liveApi;

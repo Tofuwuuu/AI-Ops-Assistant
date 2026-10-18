@@ -23,6 +23,13 @@ from app.schemas import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# Local development only. main.py includes this router when APP_ENV=development,
+# so the route does not exist in any other environment.
+demo_router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Created by main._bootstrap_default_account on first start.
+DEMO_USER_EMAIL = "admin@demo.example.com"
+
 
 def _slugify(name: str) -> str:
     base = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "account"
@@ -72,7 +79,11 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenOut:
     user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    return _session_for(user, db)
 
+
+def _session_for(user: User, db: Session) -> TokenOut:
+    """Issue the normal JWT for a user's first account membership."""
     membership = (
         db.query(AccountMember)
         .filter(AccountMember.user_id == user.id)
@@ -93,6 +104,15 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenOut:
         account=AccountOut.model_validate(account),
         role=membership.role.value,
     )
+
+
+@demo_router.post("/demo", response_model=TokenOut)
+def demo_sign_in(db: Session = Depends(get_db)) -> TokenOut:
+    """Sign in as the seeded demo user. Never creates one; 404 if it is missing."""
+    user = db.query(User).filter(User.email == DEMO_USER_EMAIL).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Demo user not found")
+    return _session_for(user, db)
 
 
 @router.get("/me", response_model=AuthMeOut)

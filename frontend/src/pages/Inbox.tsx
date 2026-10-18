@@ -14,6 +14,7 @@ import { api } from "../api/client";
 import { StatusBadge } from "../components/StatusBadge";
 import { isNegativeSentiment, isSeniorTier, sentimentScore } from "../lib/signals";
 import type { TicketListItem } from "../types";
+import { writeLock } from "../lib/demo";
 
 function initialsFor(email: string): string {
   const name = email.split("@")[0];
@@ -209,11 +210,11 @@ export function Inbox() {
                   </button>
                   <button
                     type="button"
-                    disabled={ticket.status !== "needs_review" || approveMutation.isPending}
                     onClick={() => approveMutation.mutate(ticket.id)}
                     className="rounded-xl bg-brand-600 p-2 text-white hover:bg-brand-700 disabled:opacity-40"
                     aria-label="Send"
                     title="Approve draft (send)"
+                    {...writeLock(ticket.status !== "needs_review" || approveMutation.isPending)}
                   >
                     <Send className="h-4 w-4" />
                   </button>
@@ -313,7 +314,7 @@ export function Inbox() {
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  disabled={ticket.status !== "needs_review" || rejectMutation.isPending}
+                  {...writeLock(ticket.status !== "needs_review" || rejectMutation.isPending)}
                   onClick={() => rejectMutation.mutate(ticket.id)}
                   className="rounded-xl border border-amber-200 bg-amber-50 py-2 text-xs font-semibold text-amber-800 disabled:opacity-40"
                 >
@@ -321,7 +322,7 @@ export function Inbox() {
                 </button>
                 <button
                   type="button"
-                  disabled={ticket.status !== "needs_review" || approveMutation.isPending}
+                  {...writeLock(ticket.status !== "needs_review" || approveMutation.isPending)}
                   onClick={() => approveMutation.mutate(ticket.id)}
                   className="rounded-xl border border-teal-200 bg-teal-50 py-2 text-xs font-semibold text-teal-800 disabled:opacity-40"
                 >
