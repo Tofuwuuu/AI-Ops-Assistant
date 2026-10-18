@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { checkApiHealth } from "../api/client";
 import { useAuth } from "../context/AuthContext";
@@ -14,6 +14,11 @@ export function Login() {
   const [pending, setPending] = useState(false);
   // Only true after the health check fails. While it runs, the page looks normal.
   const [apiOffline, setApiOffline] = useState(false);
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLFormElement>(null);
+  // Top padding only while the banner is showing and would cover the card.
+  const [padTop, setPadTop] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -24,6 +29,41 @@ export function Login() {
       active = false;
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (!apiOffline) {
+      setPadTop(0);
+      return;
+    }
+    const banner = bannerRef.current;
+    const main = mainRef.current;
+    const card = cardRef.current;
+    if (!banner || !main || !card) return;
+
+    const update = () => {
+      const h = banner.offsetHeight;
+      // Measure the card's natural top with no offset and vertical centering,
+      // so a prior mobile pad does not skew the decision after resize.
+      const prevPad = main.style.paddingTop;
+      const prevAlign = main.style.alignItems;
+      main.style.paddingTop = "0px";
+      main.style.alignItems = "center";
+      const naturalTop = card.getBoundingClientRect().top;
+      main.style.paddingTop = prevPad;
+      main.style.alignItems = prevAlign;
+      const next = naturalTop < h + 8 ? h : 0;
+      setPadTop((cur) => (cur === next ? cur : next));
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(banner);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [apiOffline]);
 
   if (!loading && user) return <Navigate to="/" replace />;
 
@@ -45,8 +85,9 @@ export function Login() {
     <div className="flex min-h-screen flex-col bg-surface">
       {apiOffline && (
         <div
+          ref={bannerRef}
           role="status"
-          className="border-b border-slate-200 bg-surface-muted px-4 py-2 text-center text-sm text-slate-600"
+          className="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-surface-muted px-4 py-2 text-center text-sm text-slate-600"
         >
           This demo shows the frontend only. The backend is offline, so sign-in is turned off.{" "}
           <a
@@ -60,8 +101,13 @@ export function Login() {
           to try the full app.
         </div>
       )}
-      <div className="flex flex-1 items-center justify-center p-4">
+      <div
+        ref={mainRef}
+        className={`flex flex-1 justify-center p-4 ${padTop > 0 ? "items-start" : "items-center"}`}
+        style={padTop > 0 ? { paddingTop: padTop } : undefined}
+      >
         <form
+          ref={cardRef}
           onSubmit={onSubmit}
           className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-8 shadow-card"
         >
