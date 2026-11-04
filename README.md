@@ -1,64 +1,12 @@
 # AI Ops Assistant
 
-A portfolio demo of support tooling: the React dashboard takes a request, FastAPI queues an agent, and the draft stays unsent until a person approves it.
-
-The repository and API title stay **AI Ops Assistant**. In the app, the product is called **Archivist**. The page title is `Archivist — Operational Intelligence`, and the demo account uses that name too.
-
-Placeholder or missing `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GROQ_API_KEY` values select `MockAdapter`. The pipeline still runs offline with canned classify and draft JSON. `GET /health` does not report which adapter a host is using.
-
-## Status and demo
-
-Live UI, HTTP 200 on 19 Oct 2026: [https://ai-ops-assistant-wheat.vercel.app/](https://ai-ops-assistant-wheat.vercel.app/)
-
-That Vercel host serves the static React app. `frontend/vercel.json` rewrites every path to `index.html`, so `/health` and `/api` on that origin are the same HTML page. Postgres, Redis, the worker, and n8n are Compose services, and they are the primary full-stack demo.
-
-The live site is the frontend only, running on built-in sample data with no sign-in. It opens straight to the dashboard, and actions that need the backend, like Approve and Send, are turned off. To use the full app, run it locally (see Run the full app locally). Locally, the app signs you in automatically as the demo user.
-
-## Screenshots
-
-Captured on 23 Sep 2026, when the live site still had a backend. The live site now shows sample data instead. Docker Compose is still the setup that runs Postgres, Redis, the worker, and n8n together.
+Support tooling where an agent drafts the reply and a person sends it. You submit a request in the React dashboard, FastAPI queues it, a worker classifies it, pulls from the knowledge base and writes a draft. Nothing goes out until someone hits Approve.
 
 ![Archivist dashboard with pipeline stats and the active queue](docs/screenshots/dashboard.png)
 
-Dashboard: pipeline stats and the active ticket queue.
+Live UI: https://ai-ops-assistant-wheat.vercel.app/
 
-![Conversations inbox with a billing ticket and the AI copilot draft](docs/screenshots/inbox.png)
-
-Conversations: ticket list beside the AI copilot draft.
-
-![Ticket detail with the agent pipeline and an unsent draft](docs/screenshots/ticket-detail.png)
-
-Ticket detail: agent pipeline timeline and the draft waiting for approval.
-
-![Analytics charts computed from stored tickets](docs/screenshots/analytics.png)
-
-Reporting: status, category, confidence, and decision charts from stored tickets.
-
-## Run the full app locally
-
-You need Docker installed. Start the API, worker, Postgres, Redis, n8n, and the frontend:
-
-```bash
-docker compose up --build
-```
-
-Then open http://localhost:5173. It signs you in to a demo account automatically. On first start it runs the database migrations and creates the demo account. No `.env` is needed: without API keys it uses mock AI, email, SMS, and Stripe, so nothing connects to a paid service or the live site.
-
-To add fake contacts and an open invoice:
-
-```bash
-docker compose exec backend python -m app.seed_demo
-```
-
-Press Ctrl+C to stop it, or run this from another terminal:
-
-```bash
-docker compose down
-```
-
-If automatic sign-in doesn't work, the sign-in form appears instead. Use `admin@demo.example.com` / `demo1234`. The form also appears after you log out.
-
-## Architecture
+That's the frontend only, on sample data, with no sign-in. Anything that needs the backend, like Approve and Send, is off. Run it locally for the real thing.
 
 ```
 User (React) → FastAPI → Postgres / Redis queue
@@ -69,107 +17,70 @@ User (React) → FastAPI → Postgres / Redis queue
                             n8n (audit / retry / notify)
 ```
 
-## Quick start
-
-### 1. Environment
+## Run it
 
 ```bash
-cp .env.example .env   # (optional, only to use real API keys)
-# Optional: set OPENAI_API_KEY, or ANTHROPIC_API_KEY with LLM_PROVIDER=anthropic,
-# or GROQ_API_KEY with LLM_PROVIDER=groq.
-# Placeholder keys keep MockAdapter on the same pipeline.
-```
-
-### 2. Run with Docker Compose
-
-```bash
+cp .env.example .env
 docker compose up --build
+docker compose exec backend python -m app.migrate
+docker compose exec backend python -m app.seed_demo
 ```
 
-Ports match `docker-compose.yml`:
+The backend already runs migrations on start, so the third line is a no-op on a fresh boot. The seed adds fake contacts and an open invoice.
 
-| Service   | URL / port                  |
-|-----------|-----------------------------|
-| Frontend  | http://localhost:5173       |
-| API       | http://localhost:8000       |
-| API docs  | http://localhost:8000/docs  |
-| n8n       | http://localhost:5678       |
-| Postgres  | localhost:5432              |
-| Redis     | localhost:6379              |
+Open http://localhost:5173. It signs you in as the demo user. If it doesn't, use `admin@demo.example.com` / `demo1234`. Stop with `docker compose down`.
 
-Default n8n login: `admin` / `changeme` (override with `N8N_BASIC_AUTH_USER` and `N8N_BASIC_AUTH_PASSWORD` in `.env`).
+| Service | Where |
+| --- | --- |
+| Frontend | http://localhost:5173 |
+| API | http://localhost:8000 (docs at `/docs`) |
+| n8n | http://localhost:5678, `admin` / `changeme` |
+| Postgres | localhost:5432 |
+| Redis | localhost:6379 |
 
-The Compose frontend is built with `VITE_API_BASE_URL=http://localhost:8000`, so the browser talks to the published API port.
+API keys are optional. Set `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY` with `LLM_PROVIDER=anthropic`, or `GROQ_API_KEY` with `LLM_PROVIDER=groq`. Missing or placeholder keys fall back to `MockAdapter`, which returns canned classify and draft JSON so the whole pipeline still runs offline. Email, SMS and Stripe are mocked the same way. `GET /health` doesn't tell you which adapter is active.
 
-### 3. Import the n8n workflow
+In the UI the product is called Archivist (page title `Archivist — Operational Intelligence`). The repo and API keep the AI Ops Assistant name.
 
-1. Open http://localhost:5678
-2. **Workflows → Import from File** → `n8n/workflows/ops-assistant.json`
-3. Activate the workflow so `/webhook/ops-assistant` is live
-4. Align the `X-Webhook-Secret` header with `N8N_WEBHOOK_SECRET`
+For n8n: open it, import `n8n/workflows/ops-assistant.json`, activate it so `/webhook/ops-assistant` is live, and match the `X-Webhook-Secret` header to `N8N_WEBHOOK_SECRET`.
 
-### 4. Try a ticket
+To try it, submit something like "How do I reset my password?", open the ticket, watch the agent timeline, then approve or reject the draft.
 
-1. Open http://localhost:5173. It signs you in to a demo account automatically.
-2. Submit a request (for example, “How do I reset my password?”)
-3. Open the ticket detail page and watch the agent timeline
-4. Review the AI draft and **Approve** or **Reject**
-
-## Agent tools (v1)
-
-Only three tools by design:
-
-- `search_knowledge_base(query)`
-- `get_ticket(ticket_id)`
-- `save_draft(ticket_id, draft, confidence)`
-
-Knowledge base docs live in `knowledge_base/*.md` and are seeded into Postgres (`kb_docs`) on startup. Retrieval uses Postgres full-text (`tsvector`) with `ILIKE` fallback.
-
-## Safety
-
-- API keys stay in environment variables (see `.env.example`; `.env` is gitignored)
-- Every agent step is written to `agent_logs` with secret redaction
-- Draft validation scans for secrets, empty or too-short text, and a small toxic-term list
-- **No automatic outbound send**: `approved` is set only by a signed-in user calling the dashboard approve action while the ticket is `needs_review`
-- Redis rate limiting on ticket creation
-- Dashboard routes require a JWT. The demo user above is created on first boot
-
-## Local development (apps outside Compose)
-
-Infra still comes from Compose. Published ports are Postgres `5432` and Redis `6379`.
+## Running the apps outside Compose
 
 ```bash
 docker compose up postgres redis -d
 
-# Backend (from repo root)
 cd backend
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 export DATABASE_URL=postgresql+psycopg://ops:ops@localhost:5432/ai_ops
 export REDIS_URL=redis://localhost:6379/0
-export APP_ENV=development           # outside development, the API needs a real JWT_SECRET_KEY
-# Windows cmd: set DATABASE_URL=...  and  set REDIS_URL=...
-uvicorn app.main:app --reload      # http://localhost:8000
-# Separate terminal, same venv and env:
-python -m app.worker
+export APP_ENV=development   # otherwise it wants a real JWT_SECRET_KEY
+uvicorn app.main:app --reload
+python -m app.worker         # second terminal
 
-# Frontend
-cd frontend
-npm install
-npm run dev                        # http://localhost:5173
+cd frontend && npm install && npm run dev
 ```
 
-`KB_DOCS_PATH` defaults to `../knowledge_base` when the API is started from `backend/`. Compose sets it to `/app/knowledge_base`.
+## How the agent works
 
-## Known limitations (v1)
+It has three tools and that's on purpose: `search_knowledge_base(query)`, `get_ticket(ticket_id)` and `save_draft(ticket_id, draft, confidence)`. Docs in `knowledge_base/*.md` load into Postgres on startup. Search is Postgres full-text with an `ILIKE` fallback, no embeddings.
 
-- The live Vercel site is the frontend only, with sample data and no backend running.
-- LLM mock mode when provider API keys are missing or still the `.env.example` placeholders
-- n8n notification channels are stubbed (ack / retry only)
-- Keyword retrieval only (no embeddings / pgvector yet)
-- The demo login is a shared bootstrap password
+Every step is logged to `agent_logs` with secrets redacted. Drafts get checked for secrets, empty or too-short text, and a small list of toxic terms. A ticket only becomes `approved` when a signed-in user approves it from `needs_review`. Ticket creation is rate limited in Redis, and dashboard routes need a JWT.
 
-## License
+## Limits
+
+- The Vercel site has no backend.
+- Mock LLM when keys are missing.
+- n8n notifications are stubbed, ack and retry only.
+- Keyword retrieval only.
+- The demo login is a shared password.
+
+The screenshots below are from 23 Sep 2026, when the live site still had a backend.
+
+![Conversations inbox with a billing ticket and the AI copilot draft](docs/screenshots/inbox.png)
+![Ticket detail with the agent pipeline and an unsent draft](docs/screenshots/ticket-detail.png)
+![Analytics charts computed from stored tickets](docs/screenshots/analytics.png)
 
 MIT. See [LICENSE](LICENSE).
